@@ -12,6 +12,13 @@
   saveas(gcf, filename);
 
     ```
+* the results are saved to results.csv 
+
+
+    ```matlab
+    % % Store resultfor this iteration
+    result(i,:) = [i, optimalHyperParams, finalMSE, randomSeed];
+    ```
 
     our main finding is that **mean square error** is ${\color{red}not \; enough}$  to judge the performance of the nn based on our little visual exploration to the nn.
 
