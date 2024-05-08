@@ -1,3 +1,6 @@
+* the entry point to run this code is to run `loop_plots_optimizeNNForTrimmingPumpImpeller.m` and it depends on
+`optimizeNNForTrimmingPumpImpeller.m`.
+
 * this code represents an exploration to what we did in the `trimming_code.m` 
     - and to run this code pay due care that you need to import data from the `training-data` folder :
     ```matlab
@@ -20,5 +23,5 @@
     result(i,:) = [i, optimalHyperParams, finalMSE, randomSeed];
     ```
 
-    our main finding is that **mean square error** is ${\color{red}not \; enough}$  to judge the performance of the nn based on our little visual exploration to the nn.
+    our main finding is that **mean square error** is ${\color{red}not  enough}$  to judge the performance of the nn based on our little visual exploration to the nn.
 
