@@ -25,3 +25,7 @@
 
     our main finding is that **mean square error** is ${\color{red}not  enough}$  to judge the performance of the nn based on our little visual exploration to the nn.
 
+* [to download the full repo click here](https://github.com/MohammedTwheed/trimming-code/archive/e55dba5d2b9e8080aba55a3001d38a4c222294ef.zip)
+    
+    - note that you will need to unzip it using winrar or 7z to download 7z [click here](https://www.7-zip.org/download.html) 
+
