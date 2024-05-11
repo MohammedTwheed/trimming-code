@@ -1,0 +1,78 @@
+2024-05-11 00:05:64
+Optimized Hyperparameters: Hidden Layer 1 Size = 5, Hidden Layer 2 Size = 19,Max Epochs = 175, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0009
+Random Seed Used: 7117
+Optimization Duration: 23.6231 seconds
+
+2024-05-11 00:05:48
+Optimized Hyperparameters: Hidden Layer 1 Size = 20, Hidden Layer 2 Size = 8,Max Epochs = 106, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 9997
+Optimization Duration: 34.9479 seconds
+
+2024-05-11 00:05:18
+Optimized Hyperparameters: Hidden Layer 1 Size = 9, Hidden Layer 2 Size = 17,Max Epochs = 65, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0008
+Random Seed Used: 7209
+Optimization Duration: 38.1657 seconds
+
+2024-05-11 00:05:26
+Optimized Hyperparameters: Hidden Layer 1 Size = 9, Hidden Layer 2 Size = 18,Max Epochs = 199, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 0.0013
+Random Seed Used: 161
+Optimization Duration: 37.4401 seconds
+
+2024-05-11 00:05:64
+Optimized Hyperparameters: Hidden Layer 1 Size = 8, Hidden Layer 2 Size = 10,Max Epochs = 107, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0009
+Random Seed Used: 7841
+Optimization Duration: 38.1372 seconds
+
+2024-05-11 01:05:33
+Optimized Hyperparameters: Hidden Layer 1 Size = 19, Hidden Layer 2 Size = 12,Max Epochs = 147, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 2.0039
+Random Seed Used: 7865
+Optimization Duration: 32.8837 seconds
+
+2024-05-11 01:05:13
+Optimized Hyperparameters: Hidden Layer 1 Size = 10, Hidden Layer 2 Size = 20,Max Epochs = 137, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 0.0014
+Random Seed Used: 4734
+Optimization Duration: 45.0697 seconds
+
+2024-05-11 02:05:02
+Optimized Hyperparameters: Hidden Layer 1 Size = 15, Hidden Layer 2 Size = 17,Max Epochs = 65, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 8966
+Optimization Duration: 43.9838 seconds
+
+2024-05-11 02:05:22
+Optimized Hyperparameters: Hidden Layer 1 Size = 10, Hidden Layer 2 Size = 9,Max Epochs = 128, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0011
+Random Seed Used: 9027
+Optimization Duration: 38.2118 seconds
+
+2024-05-11 02:05:51
+Optimized Hyperparameters: Hidden Layer 1 Size = 19, Hidden Layer 2 Size = 13,Max Epochs = 179, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 2326
+Optimization Duration: 40.3427 seconds
+
+2024-05-11 02:05:23
+Optimized Hyperparameters: Hidden Layer 1 Size = 5, Hidden Layer 2 Size = 10,Max Epochs = 130, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 1707
+Optimization Duration: 42.9270 seconds
+
+2024-05-11 03:05:03
+Optimized Hyperparameters: Hidden Layer 1 Size = 15, Hidden Layer 2 Size = 8,Max Epochs = 93, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 9779
+Optimization Duration: 45.1949 seconds
+
+2024-05-11 04:05:01
+Optimized Hyperparameters: Hidden Layer 1 Size = 13, Hidden Layer 2 Size = 9,Max Epochs = 96, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0008
+Random Seed Used: 9209
+Optimization Duration: 37.5113 seconds
+
