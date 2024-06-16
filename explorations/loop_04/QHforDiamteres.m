@@ -1,100 +1,150 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Author : Mohammed twheed khater
-%   email: mohammedtwheed@gmail.com
-% Submited to : prof. dr. mohammed farid khalil
-% its related to trimming part of our bachelor project with dr. farid
-% our supervisor.
-% 30/4/2023
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-% This code defines a program for training two separate neural networks to
-% predict the diameter and power consumption of a centrifugal pump impeller
-% after trimming based on the flow rate and head. Here's a breakdown of the
-% code:
-%
-% Functions:
-%
-% 1. `loadData`: This function loads data from four separate `.mat` files
-% containing flow rate (Q), head (H), diameter (D), and power (P) values.
-% It performs error handling to ensure the data path exists and loads the
-% data into MATLAB variables.
-%
-% 2. `optimizeNNForTrimmingPumpImpeller`: This function performs the core
-% task of optimizing a neural network for a given input-output pair (either
-% Q,H predicting D or Q,D predicting P). It uses a genetic algorithm to
-% search for the best hyperparameters (like hidden layer size, training
-% epochs, etc.) that minimize the mean squared error (MSE) between the
-% network's predictions and the actual values. It also logs the
-% optimization results to a file called
-% 'optimizeNNForTrimmingPumpImpeller_log.txt'.
-%
-% 3. `processDataAndVisualize`: This function processes the data by
-% interpolating it using `griddata` to create a smooth surface. It then
-% visualizes the results using `mesh` plots for both predicted diameters
-% and power consumption from the trained neural networks. Additionally, it
-% overlays the original data points on the plots for comparison. Finally,
-% it saves the visualizations as `.fig` and `.png` files (if the optional
-% argument `saveFigures` is set to `true`).
-%
-% Overall Process:
-%
-% 1. The program starts by loading the data from the `.mat` files using
-% `loadData`.
-% 2. It then optimizes two separate neural networks:
-%     - One network for predicting the diameter (D) based on the flow rate
-%     (Q) and head (H).
-%     - Another network for predicting the power
-%     consumption (P) based on the flow rate (Q) and diameter (D).
-% 3. Finally, it processes the data and visualizes the results, including
-% the neural network predictions and the original data points.
-%
-% Key Points:
-%
-% - The code utilizes genetic algorithms for hyperparameter optimization,
-% making it an automated approach to finding the best network
-% configuration.
-% - Separate networks are trained for diameter and power
-% prediction due to the difference in the number of data points available
-% for each task.
-% - Data interpolation is performed to create a smoother
-% surface for visualization purposes.
-% - The code includes functionalities
-% for error handling, logging optimization results, and saving
-% visualizations.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% NOTES
-% special attention to fact that :
-%
-% - load('QH.mat')
-%     - loads the variable QH 331x2 double in the code
-% - load('D.mat'):
-%     - loads the variable D 331x1 double in the code
-% - load('QD.mat'):
-%     - loads the variable QD 656x2 double in the code
-% - load('Pow.mat'):
-%     - loads the variable P 656x1 double in the code
-%
-% where :
-%
-%     QH contains the Q flowrate and Head data corresponding to D the
-%     diameters corresponding to the (Q ,H).
-%
-%     QD contains Q flowrate and D diameter corresponding to power in P.
-%
-% - out main purpose is to build a neural network that takes in (Q,H) and
-% gives (D,P) but due the inconsistency in data points number we split it
-% to two networks.
-%
-% - for each neural network it needs to take `input training data` as
-% (number of inputs x number of examples or points) this is the reason
-% why you will find some wired transposes we use in our code
-% since for example the ploting functions will need to take the data
-% as column vectors while the neural network traning function takes the
-% transpose of this.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % MAIN
+% clear; clc; clf;
+% % Set data path (replace with your actual data directory if you use our
+% % trimming.zip folder leave it as it is)
+% dataPath = '../../training-data';
+% 
+% % Load data with error handling
+% try
+%     [QH, D, QD, P] = loadData(dataPath);
+% catch ME
+%     disp(ME.message);
+%     return;
+% end
+% 
+% % User-specified random seed (optional)
+% % Replace with your desired seed (or leave empty)
+% userSeed = 4826;
+% 
+% % Define a threshold for MSE to exit the loop early
+% mseThreshold = 0.0001;
+% 
+% % Initialize result matrix
+% result = [];
+% 
+% % Find all distinct diameters in D
+% distinctDiameters = unique(D);
+% 
+% for dIdx = 1:length(distinctDiameters)
+%     % Current diameter to remove
+%     diameterToRemove = distinctDiameters(dIdx);
+% 
+%     % Find indices of the current diameter in D
+%     indicesToRemove = find(D == diameterToRemove);
+% 
+%     % Store the removed data for later use
+%     removedQH = QH(:, indicesToRemove);
+%     removedD = D(indicesToRemove);
+% 
+%     % Remove rows from QH and D based on the indices
+%     QH_temp = QH;
+%     D_temp = D;
+%     QH_temp(:, indicesToRemove) = [];
+%     D_temp(:, indicesToRemove) = [];
+% 
+%     Qa = QH_temp(1,:);
+%     Ha = QH_temp(2,:);
+%     Q = QH_temp(1,:);
+%     H = QH_temp(2,:);
+% 
+%     for i = 1:20
+% 
+%         [optimalHyperParamsH, finalMSEH, randomSeedH, bestTrainedNetH, error] = ...
+%             optimizeNNForTrimmingPumpImpeller([QH_temp(1,:); D_temp], QH_temp(2,:), userSeed + i);
+% 
+%         % Store result for this iteration
+%         result(i, :) = [i, optimalHyperParamsH, finalMSEH, randomSeedH, error(1), error(2), error(3)];
+% 
+%         % Calculate MSE for the removed diameter
+%         predictedH = bestTrainedNetH([removedQH(1, :); removedD])';
+%         mseDiameter = mean((removedQH(2, :)' - predictedH).^2 / sum(removedQH(2, :)));
+% 
+%         fprintf('Diameter %d, Iteration %d, MSE: %.6f\n', diameterToRemove, i, mseDiameter);
+% 
+%         % Define desired diameter values 
+%         desiredDiameters = distinctDiameters; 
+% 
+%         % Create a single figure for all plots
+%         figure;
+%         hold on;  % Keep plots on the same figure
+% 
+%         Qt = linspace(0, 400, 200);
+% 
+%         for diameterIndex = 1:length(desiredDiameters)
+% 
+%             desiredDiameter = desiredDiameters(diameterIndex);
+%             Dt = repmat(desiredDiameter, length(Qt), 1);
+% 
+%             filteredQH = bestTrainedNetH([Qt; Dt'])';
+% 
+%             % Define legend entry for each diameter
+%             legendLabel = strcat('Diameter: ', num2str(desiredDiameter), 'mm');
+% 
+%             % Plot Q vs H with appropriate label and legend entry
+%             scatter(Qt, filteredQH, 'filled', 'DisplayName', legendLabel);
+% 
+%             scatter(Qa', Ha');
+% 
+%         end
+% 
+%         xlabel('Q (m^3/h)');
+%         ylabel('H (m)');
+%         title(['(Q, H) slices with Diameters, Removed Diameter: ' num2str(diameterToRemove) 'mm']);
+%         legend;  
+%         hold off;
+% 
+%         % Save the plot with a descriptive filename
+%         filename = sprintf('../loop_03/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d.png', diameterToRemove, i, ...
+%             optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
+%             optimalHyperParamsH(4), optimalHyperParamsH(5),mseDiameter);
+%         saveas(gcf, filename);
+% 
+% 
+%             % Specify the filename for saving the network
+%             filename = sprintf('../loop_03/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d.mat', diameterToRemove, i, ...
+%             optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
+%             optimalHyperParamsH(4), optimalHyperParamsH(5), mseDiameter);
+% 
+%             % Save the network to the .mat file
+%             save(filename, 'bestTrainedNetH');
+% 
+%         % Close the figure to avoid memory issues
+%         close(gcf);
+% 
+%         % Exit loop if MSE is below the threshold
+%         if mseDiameter < mseThreshold
+%             fprintf('MSE for diameter %d is below the threshold. Exiting loop.\n', diameterToRemove);
+% 
+%             break;
+%         end
+% 
+%     end
+% 
+% end
+% 
+% % Write the results to a CSV file
+% writematrix([["Iteration", "Hidden Layer 1 Size", "Hidden Layer 2 Size", "Max Epochs", ...
+%     "Training Function", "Activation Function", "Final MSE", ...
+%     "Random Seed", "Training Error", "Validation Error", "Test Error"]; result], 'results_loop.csv');
+% 
+% disp('Results saved to results_loop.csv');
+% 
+% % Process data and visualize results
+% % PLEASE note the transpose here
+% % processDataAndVisualize(QH', D', QD', P', bestTrainedNetD, bestTrainedNetP);
+% 
+% % it will save the figure as MATLAB figure and as a PNG to include
+% % in publications directly
+% 
+% % END MAIN
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
@@ -103,7 +153,7 @@
 clear; clc; clf;
 % Set data path (replace with your actual data directory if you use our
 % trimming.zip folder leave it as it is)
-dataPath = './training-data';
+dataPath = '../../training-data';
 
 % Load data with error handling
 try
@@ -113,27 +163,142 @@ catch ME
     return;
 end
 
-% % User-specified random seed (optional)
-% % Replace with your desired seed (or leave empty)
-userSeed = 12345;
-%
-% % Optimize neural network for diameter trimming
-[optimalHyperParamsD,finalMSED, randomSeedD, bestTrainedNetD] = ...
-    optimizeNNForTrimmingPumpImpeller(QH, D, userSeed);
-%
-% % Optimize neural network for power consumption
-[optimalHyperParamsP, finalMSEP, randomSeedP, bestTrainedNetP] = ...
-    optimizeNNForTrimmingPumpImpeller(QD, P, userSeed);
+% User-specified random seed (optional)
+% Replace with your desired seed (or leave empty)
+userSeed = 4826;
+
+% Define a threshold for MSE to exit the loop early
+mseThreshold = 0.000199;
+
+% Initialize result matrix
+result = [];
+
+% Find all distinct diameters in D
+distinctDiameters = unique(D);
+
+for dIdx = 1:length(distinctDiameters)
+    % Current diameter to remove
+    diameterToRemove = distinctDiameters(dIdx);
+    
+    % Find indices of the current diameter in D
+    indicesToRemove = find(D == diameterToRemove);
+    
+    % Store the removed data for later use
+    removedQH = QH(:, indicesToRemove);
+    removedD = D(indicesToRemove);
+    
+    % Remove rows from QH and D based on the indices
+    QH_temp = QH;
+    D_temp = D;
+    QH_temp(:, indicesToRemove) = [];
+    D_temp(:, indicesToRemove) = [];
+    
+    Qa = QH_temp(1,:);
+    Ha = QH_temp(2,:);
+    Q = QH_temp(1,:);
+    H = QH_temp(2,:);
+
+    for i = 1:20
+
+        [optimalHyperParamsH, finalMSEH, randomSeedH, bestTrainedNetH, error] = ...
+            optimizeNNForTrimmingPumpImpeller([QH_temp(1,:); D_temp], QH_temp(2,:), userSeed + i);
+
+        % Store result for this iteration
+        result(i, :) = [i, optimalHyperParamsH, finalMSEH, randomSeedH, error(1), error(2), error(3)];
+
+        % Calculate MSE for the removed diameter
+        predictedH = bestTrainedNetH([removedQH(1, :); removedD])';
+        mseDiameter = mean((removedQH(2, :)' - predictedH).^2 / sum(removedQH(2, :)));
+
+        fprintf('Diameter %d, Iteration %d, MSE: %.6f\n', diameterToRemove, i, mseDiameter);
+
+        % Define desired diameter values 
+        desiredDiameters = distinctDiameters; 
+
+        % Create a single figure for all plots
+        figure;
+        hold on;  % Keep plots on the same figure
+
+        % Plot the removed diameter data points
+        scatter(removedQH(1, :)', removedQH(2, :)', 'r', 'filled', 'DisplayName', sprintf('Removed Diameter: %dmm', diameterToRemove));
+        
+        Qt = linspace(0, 400, 200);
+
+        for diameterIndex = 1:length(desiredDiameters)
+
+            desiredDiameter = desiredDiameters(diameterIndex);
+            Dt = repmat(desiredDiameter, length(Qt), 1);
+
+            filteredQH = bestTrainedNetH([Qt; Dt'])';
+
+            % Define legend entry for each diameter
+            legendLabel = strcat('Diameter: ', num2str(desiredDiameter), 'mm');
+
+            % Plot Q vs H with appropriate label and legend entry
+            plot(Qt, filteredQH, 'DisplayName', legendLabel);
+            
+            % Add a callout marker at the end of the curve
+            text(Qt(end), filteredQH(end), sprintf('%dmm', desiredDiameter), 'FontSize', 8, 'Color', 'black', 'BackgroundColor', 'white');
+
+        end
+
+        % Plot the remaining original data points
+        scatter(Qa', Ha', 'b', 'filled', 'DisplayName', 'Reference Points');
+        
+        xlabel('Q (m^3/h)');
+        ylabel('H (m)');
+        title(['(Q, H) slices with Diameters, Removed Diameter: ' num2str(diameterToRemove) 'mm']);
+        legend;  
+        hold off;
+
+        % Save the plot with a descriptive filename
+        filename = sprintf('../loop_04/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.png', diameterToRemove, i, ...
+            optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
+            optimalHyperParamsH(4), optimalHyperParamsH(5),mseDiameter,error(3));
+        saveas(gcf, filename);
+
+        % Specify the filename for saving the network
+        filename = sprintf('../loop_04/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.mat', diameterToRemove, i, ...
+            optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
+            optimalHyperParamsH(4), optimalHyperParamsH(5), mseDiameter,error(3));
+            
+        % Save the network to the .mat file
+        save(filename, 'bestTrainedNetH');
+
+        % Close the figure to avoid memory issues
+        close(gcf);
+
+        % Exit loop if MSE is below the threshold
+        if (mseDiameter < mseThreshold) && (error(3)<0.0199) 
+            fprintf('MSE for diameter %d is below the threshold. Exiting loop.\n', diameterToRemove);
+            break;
+        end
+
+    end
+
+end
+
+% Write the results to a CSV file
+writematrix([["Iteration", "Hidden Layer 1 Size", "Hidden Layer 2 Size", "Max Epochs", ...
+    "Training Function", "Activation Function", "Final MSE", ...
+    "Random Seed", "Training Error", "Validation Error", "Test Error"]; result], 'results_loop.csv');
+
+disp('Results saved to results_loop.csv');
 
 % Process data and visualize results
-%PLEASE note the transpose here
-processDataAndVisualize(QH', D', QD',P', bestTrainedNetD, bestTrainedNetP);
+% PLEASE note the transpose here
+% processDataAndVisualize(QH', D', QD', P', bestTrainedNetD, bestTrainedNetP);
 
-% it will save the figure as matlab figure and as a png to include
+% it will save the figure as MATLAB figure and as a PNG to include
 % in publications directly
 
 % END MAIN
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
 
 
 
@@ -177,7 +342,7 @@ end
 
 
 
-function [optimalHyperParams, finalMSE, randomSeed, bestTrainedNet] = optimizeNNForTrimmingPumpImpeller(x, t, userSeed)
+function [optimalHyperParams, finalMSE, randomSeed, bestTrainedNet,nnPerfVect] = optimizeNNForTrimmingPumpImpeller(x, t, userSeed)
 % optimizeNNForTrimmingPumpImpeller: Optimizes neural network
 % hyperparameters for pump impeller trimming. Inputs:
 %   x - Input data (Q flowrate, H head) for the neural network. t -
@@ -222,20 +387,35 @@ activationFunctionOptions = {'tansig', 'logsig'};
 % Define bounds for the genetic algorithm optimization. the positional
 % meaning [<hidden layer neurons number> ,< epochs>... ,<index of
 % trainingFunctionOptions>,<index of activationFunctionOptions>]
-lowerBounds = [5,  5,     50, 1, 1];
-upperBounds = [20,20,    200, 8, 2];
+lowerBounds = [2,  9,    117, 1, 1];
+upperBounds = [2,  117,    317, 1, 1];
 
 % Define options for the genetic algorithm. ConstraintTolerance, is the
 % convergence limit its value determines the stop criteria for the ga.
 % FitnessLimit, is the min mse value to stop search if mse get to it.
-% gaOptions = optimoptions('ga', 'MaxTime',
-% 20,'ConstraintTolerance',0.0003,'FitnessLimit',0.0009);
-gaOptions = optimoptions('ga', 'MaxTime', 2);
+
+
+% gaOptions = optimoptions('ga','ConstraintTolerance',0.0009,'FitnessLimit',0.0009,'MaxTime',...
+% 20);
+
+gaOptions=optimoptions('ga', ...
+    'PopulationSize', 30, ...
+    'MaxGenerations', 50, ...
+    'CrossoverFraction', 0.8, ...
+    'ConstraintTolerance',0.000991, ...
+    'FitnessLimit',0.000991, ...
+    'EliteCount', 2, ...
+    'Display', 'iter', ...
+    'UseParallel', true);
+
+% gaOptions = optimoptions('ga', 'MaxTime', 2);
 
 % Global variable to store the best trained neural network found during
 % optimization.
 global bestTrainedNet;
 bestTrainedNet = [];
+global nnPerfVect;
+nnPerfVect=[];
 % TODO: MTK to SEI you might consider making a helper function just to
 % resolve this issue with the ga for example function
 % [mse,bestTrainedNet] = evaluateHyperparameters(params...)
@@ -253,7 +433,7 @@ bestTrainedNet = [];
 % datasets errors As we divide our data by ratio 70% training , 15%
 % validation , 15% testing. all ga will optimize based on that avgMSEs
 % returned by evaluateHyperparameters.
-    function avgMSEs = evaluateHyperparameters(hyperParams, x, t, randomSeed)
+    function [avgMSEs] = evaluateHyperparameters(hyperParams, x, t, randomSeed)
         rng(randomSeed); % Set random seed for reproducibility.
 
         % Extract hyperparameters.
@@ -315,17 +495,17 @@ bestTrainedNet = [];
             valPerformance+....
             testPerformance) / 4;
 
-
         % Check if the current MSE is the best MSE so far and update the
         % global variable if necessary.
         if isempty(bestTrainedNet) || avgMSEs < perform(bestTrainedNet, ...
                 t, bestTrainedNet(x))
             bestTrainedNet = trainedNet;
+            nnPerfVect= [trainPerformance,valPerformance,testPerformance];
         end
     end
 
 % Set a random seed for reproducibility.
-randomSeed = randi(10000);
+% randomSeed = randi(userSeed);
 rng(randomSeed);
 
 % Perform optimization using genetic algorithm.
