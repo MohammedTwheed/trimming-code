@@ -387,8 +387,8 @@ activationFunctionOptions = {'tansig', 'logsig'};
 % Define bounds for the genetic algorithm optimization. the positional
 % meaning [<hidden layer neurons number> ,< epochs>... ,<index of
 % trainingFunctionOptions>,<index of activationFunctionOptions>]
-lowerBounds = [2,  9,    117, 1, 1];
-upperBounds = [2,  117,    317, 1, 1];
+lowerBounds = [2,  62,    117, 1, 1];
+upperBounds = [2,  117,    1000, 1, 1];
 
 % Define options for the genetic algorithm. ConstraintTolerance, is the
 % convergence limit its value determines the stop criteria for the ga.
@@ -494,6 +494,8 @@ nnPerfVect=[];
             trainPerformance +...
             valPerformance+....
             testPerformance) / 4;
+        
+        
 
         % Check if the current MSE is the best MSE so far and update the
         % global variable if necessary.
