@@ -94,7 +94,7 @@ for i = 1:length(pump_data)
 end
 
 % Define test points (Q_prime, H_prime)
-test_points = [150, 125; 140, 120]; % Example test points
+test_points = [150, 85; 350, 45]; % Example test points
 results = zeros(size(test_points, 1), 3);
 
 for i = 1:size(test_points, 1)
@@ -115,8 +115,12 @@ for i = 1:size(test_points, 1)
     % Get the original untrimmed diameter
     D2 = pump_data(closest_D_index).Diameter;
     
+    % Calculate the new trimmed diameter
     D2_prime = constant_width_scaling(Q_prime, H_prime, closest_H_curve, closest_Q_curve, D2, best_degree);
     results(i, :) = [Q_prime, H_prime, D2_prime];
+    
+    % Plot the curves with annotations
+    plot_pump_curve(Q_prime, H_prime, closest_H_curve, closest_Q_curve, D2, D2_prime, best_degree);
 end
 
 result_table = array2table(results, 'VariableNames', {'Q_prime', 'H_prime', 'D2_prime'});
@@ -192,20 +196,54 @@ function D2_prime = constant_width_scaling(Q_prime, H_prime, H_curve, Q_curve, D
     Q_intersect = max(Q_valid);
     
     D2_prime = Q_prime / Q_intersect * D2;
+end
+
+function plot_pump_curve(Q_prime, H_prime, H_curve, Q_curve, D2, D2_prime, poly_degree)
+    p = polyfit(Q_curve, H_curve, poly_degree);
+    Q_fit = linspace(min(Q_curve), max(Q_curve), 100);
+    H_fit = polyval(p, Q_fit);
     
     figure;
     plot(Q_curve, H_curve, 'ko', 'MarkerFaceColor', 'k');
     hold on;
     
-    Q_fit = linspace(min(Q_curve), max(Q_curve), 100);
-    H_fit = polyval(p, Q_fit);
     plot(Q_fit, H_fit, 'b--', 'LineWidth', 1.5);
     
+    A = H_prime / (Q_prime^2);
     fplot(@(Q) A * Q.^2, [min(Q_curve), max(Q_curve)], 'r', 'LineWidth', 1.5);
+    
+    Q_intersect = Q_prime / D2_prime * D2;
     plot(Q_intersect, A * Q_intersect^2, 'go', 'MarkerFaceColor', 'g');
     
+    % Annotations
+    plot(Q_prime, H_prime, 'r*', 'MarkerSize', 10); % Test point
+    text(Q_prime, H_prime, sprintf('  Test Point (Q=%.1f, H=%.1f)', Q_prime, H_prime), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+    text(min(Q_curve), max(H_curve), sprintf('Original Diameter D2 = %.1f', D2), 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left', 'FontSize', 12);
+    text(Q_intersect, A * Q_intersect^2, sprintf('  New Diameter D2 = %.1f', D2_prime), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+    
     legend('Original Data Points', 'Fitted Polynomial Curve', 'Quadratic H = A * Q^2', 'Intersection Point', 'Location', 'best');
-    title('Intersection of Quadratic Function with Pump Curve');
+    title(sprintf('Intersection of Quadratic Function with Pump Curve for Diameter D2 = %.1f', D2));
+    xlabel('Flow Rate (Q)');
+    ylabel('Head (H)');
+    grid on;
+    hold off;
+    
+    % Plot the new trimmed pump curve
+    Q_trimmed = Q_fit * D2_prime / D2;
+    H_trimmed = H_fit * (D2_prime / D2)^2;
+    
+    figure;
+    plot(Q_curve, H_curve, 'ko', 'MarkerFaceColor', 'k');
+    hold on;
+    plot(Q_fit, H_fit, 'b--', 'LineWidth', 1.5);
+    plot(Q_trimmed, H_trimmed, 'g-', 'LineWidth', 1.5);
+    plot(Q_prime, H_prime, 'r*', 'MarkerSize', 10); % Test point
+    text(Q_prime, H_prime, sprintf('  Test Point (Q=%.1f, H=%.1f)', Q_prime, H_prime), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+    text(min(Q_curve), max(H_curve), sprintf('Original Diameter D2 = %.1f', D2), 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left', 'FontSize', 12);
+    text(min(Q_trimmed), max(H_trimmed), sprintf('New Diameter D2_prime = %.1f', D2_prime), 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', 'FontSize', 12);
+    
+    legend('Original Data Points', 'Fitted Polynomial Curve', 'Trimmed Pump Curve', 'Location', 'best');
+    title(sprintf('Original and Trimmed Pump Curves for Diameter D2 = %.1f and D2_prime  = %.1f', D2, D2_prime));
     xlabel('Flow Rate (Q)');
     ylabel('Head (H)');
     grid on;
