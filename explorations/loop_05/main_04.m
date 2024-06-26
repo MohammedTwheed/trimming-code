@@ -81,7 +81,7 @@ for dIdx = 1:length(distinctDiametersQHD)
 
         % Update QHD_results
         QHD_results = [QHD_results; {diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps}];
-        
+
         % Check if this is the best neural network for QHD
         if score < bestNetQHD.score
             bestNetQHD.net = trainedNetQHD_temp;
@@ -91,7 +91,7 @@ for dIdx = 1:length(distinctDiametersQHD)
             bestNetQHD.valPerformance = valPerformanceQHD_temp;
             bestNetQHD.testPerformance = testPerformanceQHD_temp;
         end
-        
+
         % Plot test data vs trained net predictions
         figure;
         plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
@@ -136,7 +136,7 @@ for dIdx = 1:length(distinctDiametersQHD)
 
         % Update QDH_results
         QDH_results = [QDH_results; {diameterToRemove, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps}];
-        
+
         % Check if this is the best neural network for QDH
         if score < bestNetQDH.score
             bestNetQDH.net = trainedNetQDH_temp;
@@ -146,7 +146,7 @@ for dIdx = 1:length(distinctDiametersQHD)
             bestNetQDH.valPerformance = valPerformanceQDH_temp;
             bestNetQDH.testPerformance = testPerformanceQDH_temp;
         end
-        
+
         % Plot test data vs trained net predictions
         figure;
         plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
@@ -192,7 +192,7 @@ for dIdx = 1:length(distinctDiametersQDP)
 
         % Update QDP_results
         QDP_results = [QDP_results; {diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps}];
-        
+
         % Check if this is the best neural network for QDP
         if score < bestNetQDP.score
             bestNetQDP.net = trainedNetQDP_temp;
@@ -202,7 +202,7 @@ for dIdx = 1:length(distinctDiametersQDP)
             bestNetQDP.valPerformance = valPerformanceQDP_temp;
             bestNetQDP.testPerformance = testPerformanceQDP_temp;
         end
-        
+
         % Plot test data vs trained net predictions
         figure;
         plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); % Original data
@@ -279,6 +279,9 @@ if isfield(bestNetQDH, 'net')
     disp(['Test Performance: ' num2str(bestNetQDH.testPerformance)]);
 end
 
+
+% create and save our first time style 3d plot.
+processDataAndVisualize(QH', D', QD',P', bestNetQHD.net, bestNetQDP.net,figures_dir);
 % Display a message indicating completion
 disp('Script execution completed.');
 
@@ -536,7 +539,7 @@ function error = fitness_polyfit(degree, Q, H)
 end
 
 
-function processDataAndVisualize(QH, D, QD, P, bestTrainedNetD, bestTrainedNetP,saveFigures)
+function processDataAndVisualize(QH, D, QD, P, bestTrainedNetD, bestTrainedNetP,figures_dir,saveFigures)
 % processDataAndVisualize - Process data and visualize results.
 %   Inputs: - QH: Q flowrate and Head data. - D: Diameters. - QD: Q
 %   flowrate and diameters. - P: Power values. - bestTrainedNetD: Best
@@ -607,7 +610,7 @@ if saveFigures
     currentTime = datetime('now', 'Format', 'yyyy-MM-dd_HH-mm-ss');
 
 
-    saveas(gcf, ['diameter_power_visualization_' char(currentTime) '.fig']);
-    saveas(gcf, ['diameter_power_visualization_' char(currentTime) '.png']);
+    saveas(gcf,fullfile(figures_dir,['best_nn_diameter_power_visualization_' char(currentTime) '.fig']));
+    saveas(gcf,fullfile(figures_dir,['best_nn_diameter_power_visualization_' char(currentTime) '.png']));
 end
 end
