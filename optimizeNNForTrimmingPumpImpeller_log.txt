@@ -1,0 +1,12 @@
+2024-06-25 15:06:72
+Optimized Hyperparameters: Hidden Layer 1 Size = 12, Hidden Layer 2 Size = 9,Max Epochs = 140, Training Function = trainlm, Activation Function = tansig
+Final Mean Squared Error (MSE): 0.0017
+Random Seed Used: 6374
+Optimization Duration: 39.2180 seconds
+
+2024-06-25 15:06:18
+Optimized Hyperparameters: Hidden Layer 1 Size = 12, Hidden Layer 2 Size = 15,Max Epochs = 131, Training Function = trainlm, Activation Function = logsig
+Final Mean Squared Error (MSE): 0.0010
+Random Seed Used: 3228
+Optimization Duration: 40.4304 seconds
+

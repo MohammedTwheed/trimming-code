@@ -179,6 +179,7 @@ function [closest_D_index, closest_H_curve, closest_Q_curve] = find_closest_diam
     end
 end
 
+%this is constant area from weme not constant width take care
 function D2_prime = constant_width_scaling(Q_prime, H_prime, H_curve, Q_curve, D2, poly_degree)
     p = polyfit(Q_curve, H_curve, poly_degree);
     A = H_prime / (Q_prime^2);

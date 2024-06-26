@@ -1,144 +1,148 @@
+clear; clc; clf; close all;
 
+% Load data
+load('filtered_QHD_table.mat');
+load('filtered_QDP_table.mat');
+load('deleted_QHD_table.mat');
+load('deleted_QDP_table.mat');
 
-%% 
-clear; clc; clf;
-load('filtered_QHD_table.mat')
-load('filtered_QDP_table.mat')
-load('deleted_QHD_table.mat')
-load('deleted_QDP_table.mat')
-
-
-QH = [filtered_QHD_table.FlowRate_m3h,filtered_QHD_table.Head_m]';
-D  = [filtered_QHD_table.Diameter_mm]';
-
-QH_beps=[deleted_QHD_table.FlowRate_m3h,deleted_QHD_table.Head_m]';
-D_beps=[deleted_QHD_table.Diameter_mm]';
-
-QD = [filtered_QDP_table.FlowRate_m3h,filtered_QDP_table.Diameter_mm]';
+% Extract data
+QH = [filtered_QHD_table.FlowRate_m3h, filtered_QHD_table.Head_m]';
+D = [filtered_QHD_table.Diameter_mm]';
+QH_beps = [deleted_QHD_table.FlowRate_m3h, deleted_QHD_table.Head_m]';
+D_beps = [deleted_QHD_table.Diameter_mm]';
+QD = [filtered_QDP_table.FlowRate_m3h, filtered_QDP_table.Diameter_mm]';
 P = [filtered_QDP_table.Power_kW]';
+QD_beps = [deleted_QDP_table.FlowRate_m3h, deleted_QDP_table.Diameter_mm]';
+P_beps = [deleted_QDP_table.Power_kW]';
 
-QD_beps=[deleted_QDP_table.FlowRate_m3h,deleted_QDP_table.Diameter_mm]';
-P_beps=[deleted_QDP_table.Power_kW]';
-%%
-
-
-
-% these hyper params are based on our latest optimization with ga
-% now we want to finalize our work.
-
-randomSeed = 4837;
-nn_size_matrix = [2,16];
-maxEpochs = 191;
-
-
-
-
-trainFcn= 'trainlm';
-
-
-[trainedNetQHD,avgMSEsQHD,trainPerformanceQHD,valPerformanceQHD,testPerformanceQHD] = train_nn([2,15,],maxEpochs,trainFcn ,QH, D, randomSeed);
-[trainedNetQDH,avgMSEsQDH,trainPerformanceQDH,valPerformanceQDH,testPerformanceQDH] = train_nn([2,15,],maxEpochs,trainFcn ,[QH(1,:); D], QH(2,:), randomSeed);
-[trainedNetQDP,avgMSEsQDP,trainPerformanceQDP,valPerformanceQDP,testPerformanceQDP] = train_nn([12,15,],maxEpochs,trainFcn ,QD, P, randomSeed);
-
-D2_prime = constant_width_scaling(Q_prime, H_prime, H_curve, Q_curve, D2, poly_degree);
-
-processDataAndVisualize(QH', D', QD',P', trainedNetQHD, trainedNetQDP);
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% work
-
-
-%% Find all distinct diameters in D
-distinctDiameters = unique(D);
-
-
-% Extract the Q, H and D is already there in D.
-Q = QH(1,:);
-H = QH(2,:);
-
-
-% Create a structure to hold Q,H curves for each diameter in unique_D.
-pump_data = struct('Diameter', cell(length(distinctDiameters), 1), 'Q', cell(length(distinctDiameters), 1), 'H', cell(length(distinctDiameters), 1));
-
-for i = 1:length(distinctDiameters)
-    idx = (D == distinctDiameters(i));
-    pump_data(i).Diameter = distinctDiameters(i);
-    pump_data(i).Q = Q(idx);
-    pump_data(i).H = H(idx);
+% Create output directories
+output_dir = 'out_data';
+figures_dir = fullfile(output_dir, 'figures');
+if ~exist(output_dir, 'dir')
+    mkdir(output_dir);
+end
+if ~exist(figures_dir, 'dir')
+    mkdir(figures_dir);
 end
 
-d_real                 = D_beps(1)
-d_trimmed_cas_260      = constant_area_scaling(QH_beps(1,1),QH_beps(2,1),pump_data(5).Q,pump_data(5).H,pump_data(5).Diameter,4)
-d_trimmed_cas_nearest  = trim_diameters(QH_beps(:,1),'filtered_QHD_table.mat')
-d_trimmed_nn           = trainedNetQHD(QH_beps(:,1))
+% Hyperparameters based on latest optimization with GA
+randomSeed = 4837;
+nn_QHD_size_matrix = [2, 16];
+nn_QDH_size_matrix = [2, 16];
+nn_QDP_size_matrix = [2, 7, 29, 17];
+maxEpochs = 191;
+trainFcn = 'trainlm';
 
-%%
-% here i already know the length of beps is 5 for 5 diameters in my
-% dataset.
-% Initialize an array to store percent errors
+% Train on full dataset
+[trainedNetQHD, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH, D, randomSeed);
+[trainedNetQDH, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH(1,:); D], QH(2,:), randomSeed);
+[trainedNetQDP, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD, P, randomSeed);
+
+% Arrays to save performance metrics
+QHD_results = [];
+QDP_results = [];
+logs = {};  % Initialize logs
+
+% Loop to train on different diameters hidden for QHD dataset
+distinctDiametersQHD = unique(D);
+for dIdx = 1:length(distinctDiametersQHD)
+    diameterToRemove = distinctDiametersQHD(dIdx);
+    indicesToRemove = find(D == diameterToRemove);
+    removedQH = QH(:, indicesToRemove);
+    removedD = D(indicesToRemove);
+    QH_temp = QH;
+    D_temp = D;
+    QH_temp(:, indicesToRemove) = [];
+    D_temp(:, indicesToRemove) = [];
+
+    try
+        [trainedNetQHD_temp, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH_temp, D_temp, randomSeed);
+        mse_deleted_diameter = perform(trainedNetQHD_temp, removedD, trainedNetQHD_temp(removedQH));
+        mse_beps = perform(trainedNetQHD_temp, D_beps, trainedNetQHD_temp(QH_beps));
+        logs{end+1} = ['Trained nn_QHD_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
+
+        [trainedNetQDH_temp, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH_temp(1,:); D_temp], QH_temp(2,:), randomSeed);
+        QHD_results = [QHD_results; diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps];
+        
+        % Plot test data vs trained net predictions
+        figure;
+        plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
+        hold on;
+        plot(QH_temp(1,:), trainedNetQDH_temp([QH_temp(1,:); D_temp]), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
+        plot(removedQH(1,:), removedQH(2,:), 'gx', 'DisplayName', 'Removed Diameter Data'); % Removed diameter data
+        plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+        legend('Location', 'best');
+        title(['QHD: Diameter ' num2str(diameterToRemove)]);
+        xlabel('Flow Rate (m^3/h)');
+        ylabel('Head (m)');
+        xlim([0 400]);
+        ylim([0 90]);
+        grid on;
+        hold off;
+        saveas(gcf, fullfile(figures_dir, ['QHD_Diameter_' num2str(diameterToRemove) '.png']));
+        logs{end+1} = ['Plotted and saved QHD data for diameter ' num2str(diameterToRemove) ' successfully.'];
+    catch e
+        logs{end+1} = ['Error processing diameter ' num2str(diameterToRemove) ': ' e.message];
+    end
+end
+
+% Loop to train on different diameters hidden for QDP dataset
+distinctDiametersQDP = unique(QD(2,:));
+for dIdx = 1:length(distinctDiametersQDP)
+    diameterToRemove = distinctDiametersQDP(dIdx);
+    indicesToRemove = find(QD(2,:) == diameterToRemove);
+    removedQD = QD(:, indicesToRemove);
+    removedP = P(indicesToRemove);
+    QD_temp = QD;
+    P_temp = P;
+    QD_temp(:, indicesToRemove) = [];
+    P_temp(indicesToRemove) = [];
+
+    try
+        [trainedNetQDP_temp, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD_temp, P_temp, randomSeed);
+        mse_deleted_diameter = perform(trainedNetQDP_temp, removedP, trainedNetQDP_temp(removedQD));
+        mse_beps = perform(trainedNetQDP_temp, P_beps, trainedNetQDP_temp(QD_beps));
+        logs{end+1} = ['Trained nn_QDP_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
+
+        QDP_results = [QDP_results; diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps];
+        
+        % Plot test data vs trained net predictions
+        figure;
+        plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); % Original data
+        hold on;
+        plot(QD(1,:), trainedNetQDP_temp(QD), 'r*', 'DisplayName', 'Trained net predictions');
+        plot(removedQD(1,:), removedP, 'gx', 'DisplayName', 'Removed Diameter Data'); % Removed diameter data
+        plot(QD_beps(1,:), P_beps, 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+        legend('Location', 'best');
+        title(['QDP: Diameter ' num2str(diameterToRemove)]);
+        xlabel('Flow Rate (m^3/h)');
+        ylabel('Power (kW)');
+        xlim([0 400]);
+        ylim([0 90]);
+        grid on;
+        hold off;
+        saveas(gcf, fullfile(figures_dir, ['QDP_Diameter_' num2str(diameterToRemove) '.png']));
+        logs{end+1} = ['Plotted and saved QDP data for diameter ' num2str(diameterToRemove) ' successfully.'];
+    catch e
+        logs{end+1} = ['Error processing diameter ' num2str(diameterToRemove) ': ' e.message];
+    end
+end
+
+% Comparison calculations for QHD dataset
 percent_errors_cas_260 = zeros(1, 5);
 percent_errors_cas_nearest = zeros(1, 5);
 percent_errors_nn = zeros(1, 5);
-
-% Loop through each column in QH_beps
-for i = 1:5
-    d_real = D_beps(1, i); % Extracting d_real from D_beps
-
-    % Calculate d using constant_area_scaling 260
-    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2, i), pump_data(5).Q, pump_data(5).H, pump_data(5).Diameter, 4);
-    percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
-
-    % Calculate d using trim_diameters
-    d_trimmed_cas_nearest = trim_diameters(QH_beps(:, i), 'filtered_QHD_table.mat');
-    percent_errors_cas_nearest(i) = abs((d_trimmed_cas_nearest - d_real) / d_real) * 100;
-
-    % Calculate d using trainedNetQHD
-    d_trimmed_nn = trainedNetQHD(QH_beps(:, i));
-    percent_errors_nn(i) = abs((d_trimmed_nn - d_real) / d_real) * 100;
-end
-
-% Display the percent errors
-disp('Percent errors for constant_area_scaling 260:');
-disp(percent_errors_cas_260);
-
-disp('Percent errors for trim_diameters:');
-disp(percent_errors_cas_nearest);
-
-disp('Percent errors for trainedNetQHD:');
-disp(percent_errors_nn);
-
-
-%% 
-
-QH_beps = removedQH;
-
 % Generate a 1x101 matrix of random real numbers between 3 and 7
 random_values = 0.02 + (0.3-0.02) * rand(1, 101);
 
 % Subtract the random values from the second row of QH
 QH_beps(2, :) = QH_beps(2, :) - random_values;
-
-
-D_beps = removedD;
-
-
-% 
-% note here that i know that QH_beps and D_beps are of lenght 5 but you
-% have to make it more general later on.
-
-% Initialize an array to store percent errors
-percent_errors_cas_260 = zeros(1, 5);
-percent_errors_cas_nearest = zeros(1, 5);
-percent_errors_nn = zeros(1, 5);
-
-% Loop through each column in QH_beps
 for i = 1:5
     d_real = D_beps(1, i); % Extracting d_real from D_beps
 
-    % Calculate d using constant_area_scaling
-    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2, i), pump_data(5).Q, pump_data(5).H, pump_data(5).Diameter, 4);
+    % Calculate d using constant_area_scaling 260
+    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2, i), QH(1,:), QH(2,:), D(end), 4);
     percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
 
     % Calculate d using trim_diameters
@@ -150,68 +154,35 @@ for i = 1:5
     percent_errors_nn(i) = abs((d_trimmed_nn - d_real) / d_real) * 100;
 end
 
-% Display the percent errors
-disp('Percent errors for constant_area_scaling:');
-disp(percent_errors_cas_260);
+% Save results to CSV
+QHD_results_table = array2table(QHD_results, 'VariableNames', {'Diameter', 'AvgMSEs', 'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSE_Deleted_Diameter', 'MSE_BEPS'});
+QDP_results_table = array2table(QDP_results, 'VariableNames', {'Diameter', 'AvgMSEs', 'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSE_Deleted_Diameter', 'MSE_BEPS'});
 
-disp('Percent errors for trim_diameters:');
-disp(percent_errors_cas_nearest);
+writetable(QHD_results_table, fullfile(output_dir, 'QHD_results.csv'));
+writetable(QDP_results_table, fullfile(output_dir, 'QDP_results.csv'));
 
-disp('Percent errors for trainedNetQHD:');
-disp(percent_errors_nn);
+% Save trained networks
+save(fullfile(output_dir, 'trainedNetQHD.mat'), 'trainedNetQHD');
+save(fullfile(output_dir, 'trainedNetQDH.mat'), 'trainedNetQDH');
+save(fullfile(output_dir, 'trainedNetQDP.mat'), 'trainedNetQDP');
 
-% Calculate the Mean Absolute Error (MAE)
-mae_trim_diameters = mean(percent_errors_cas_nearest);
-mae_trainedNetQHD = mean(percent_errors_nn);
+% Display results in a table format
+disp('QHD Results:');
+disp(QHD_results_table);
 
-% Compare the MAEs
-if mae_trainedNetQHD < mae_trim_diameters
-    disp('trainedNetQHD has a lower mean absolute error and is therefore better.');
-else
-    disp('trim_diameters has a lower mean absolute error and is therefore better.');
+disp('QDP Results:');
+disp(QDP_results_table);
+
+% Save logs to a text file
+fileID = fopen(fullfile(output_dir, 'execution_logs.txt'), 'w');
+for i = 1:length(logs)
+    fprintf(fileID, '%s\n', logs{i});
 end
+fclose(fileID);
 
-% Count how many times one method outperforms the other
-count_better_trainedNetQHD = sum(percent_errors_nn < percent_errors_cas_nearest);
-count_better_trim_diameters = sum(percent_errors_cas_nearest < percent_errors_nn);
+disp('Execution complete. Logs saved to out_data/execution_logs.txt');
 
-if count_better_trainedNetQHD > count_better_trim_diameters
-    disp('trainedNetQHD outperforms trim_diameters more frequently.');
-else
-    disp('trim_diameters outperforms trainedNetQHD more frequently.');
-end
-
-%%
-
-for dIdx = 1:length(distinctDiameters)
-    % Current diameter to remove
-    diameterToRemove = distinctDiameters(dIdx);
-    
-    % Find indices of the current diameter in D
-    indicesToRemove = find(D == diameterToRemove);
-    
-    % Store the removed data for later use
-    removedQH = QH(:, indicesToRemove);
-    removedD = D(indicesToRemove);
-    
-    % Remove rows from QH and D based on the indices
-    QH_temp = QH;
-    D_temp = D;
-    QH_temp(:, indicesToRemove) = [];
-    D_temp(:, indicesToRemove) = [];
-    
-
-
-
-[trainedNetQHD,avgMSEsQHD,trainPerformanceQHD,valPerformanceQHD,testPerformanceQHD] = train_nn([2,15,],maxEpochs,trainFcn ,QH_temp, D_temp, randomSeed);
-
-
-
-
-end
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% functions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % functions
@@ -425,7 +396,7 @@ function D2_prime = constant_area_scaling(Q_prime, H_prime, H_curve, Q_curve, D2
     p = polyfit(Q_scaled, H_scaled, poly_degree);
     
     % Calculate the scaled A value
-    A = (H_prime - H_mean) / H_std / ((Q_prime - Q_mean) / Q_std)^2;
+    A = H_prime / (Q_prime)^2;
 
     syms Q
     poly_expr = poly2sym(p, Q);
@@ -536,63 +507,4 @@ if saveFigures
     saveas(gcf, ['diameter_power_visualization_' char(currentTime) '.fig']);
     saveas(gcf, ['diameter_power_visualization_' char(currentTime) '.png']);
 end
-end
-
-% 
-function compareMethods(QH, D, QH_beps, D_beps, bestTrainedNetH, dataPath)
-    % Find all distinct diameters in D
-    distinctDiameters = unique(D);
-
-    % Initialize arrays to store MSEs
-    mseDiameterNN = zeros(1, length(distinctDiameters));
-    mseDiameterCAS = zeros(1, length(distinctDiameters));
-    mseQH_bepsNN = zeros(1, length(distinctDiameters));
-    mseQH_bepsCAS = zeros(1, length(distinctDiameters));
-
-    % Loop through each distinct diameter
-    for dIdx = 1:length(distinctDiameters)
-        % Current diameter to remove
-        diameterToRemove = distinctDiameters(dIdx);
-
-        % Find indices of the current diameter in D
-        indicesToRemove = find(D == diameterToRemove);
-
-        % Store the removed data for later use
-        removedQH = QH(:, indicesToRemove);
-        removedD = D(indicesToRemove);
-
-        % Remove rows from QH and D based on the indices
-        QH_temp = QH;
-        D_temp = D;
-        QH_temp(:, indicesToRemove) = [];
-        D_temp(indicesToRemove) = [];
-
-        % NN Prediction and MSE calculation
-        predictedH_NN = bestTrainedNetH([removedQH(1, :); removedD]);
-        mseDiameterNN(dIdx) = mean((removedQH(2, :) - predictedH_NN).^2);
-
-        predictedH_beps_NN = bestTrainedNetH([QH_beps(1, :); D_beps]);
-        mseQH_bepsNN(dIdx) = mean((QH_beps(2, :) - predictedH_beps_NN).^2);
-
-        % Constant Area Scaling Prediction and MSE calculation
-        D_trimmed = trim_diameters(QH_temp, dataPath);
-        predictedH_CAS = interp1(D_trimmed, removedQH(1, :), removedD, 'linear', 'extrap');
-        mseDiameterCAS(dIdx) = mean((removedQH(2, :) - predictedH_CAS).^2);
-
-        predictedH_beps_CAS = interp1(D_trimmed, QH_beps(1, :), D_beps, 'linear', 'extrap');
-        mseQH_bepsCAS(dIdx) = mean((QH_beps(2, :) - predictedH_beps_CAS).^2);
-
-        % Display results for the current diameter
-        fprintf('Diameter: %f\n', diameterToRemove);
-        fprintf('MSE (NN, Diameter): %f\n', mseDiameterNN(dIdx));
-        fprintf('MSE (NN, QH_beps): %f\n', mseQH_bepsNN(dIdx));
-        fprintf('MSE (CAS, Diameter): %f\n', mseDiameterCAS(dIdx));
-        fprintf('MSE (CAS, QH_beps): %f\n', mseQH_bepsCAS(dIdx));
-        fprintf('--------------------------------------------\n');
-    end
-
-    % Save results to a table
-    resultTable = table(distinctDiameters, mseDiameterNN', mseDiameterCAS', mseQH_bepsNN', mseQH_bepsCAS', ...
-        'VariableNames', {'Diameter', 'MSE_NN_Diameter', 'MSE_CAS_Diameter', 'MSE_NN_QH_beps', 'MSE_CAS_QH_beps'});
-    writetable(resultTable, 'comparison_results.csv');
 end
