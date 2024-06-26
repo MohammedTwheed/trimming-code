@@ -46,10 +46,17 @@ QDH_results = array2table(NaN(1, 7), 'VariableNames', {'DiameterRemoved', 'AvgMS
 
 logs = {};  % Initialize logs
 
+% Weights for different errors
+weights = struct('train', 0.05, 'val', 0.05, 'test', 0.35, 'deleted_diameter', 0.45, 'beps', 0.1);
+
 % Initialize best neural network variables for each type
-bestNetQHD = struct('net', [], 'diameter', [], 'mse', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
-bestNetQDP = struct('net', [], 'diameter', [], 'mse', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
-bestNetQDH = struct('net', [], 'diameter', [], 'mse', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
+bestNetQHD = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
+bestNetQDP = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
+bestNetQDH = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
+
+% Function to compute the weighted score
+compute_score = @(trainPerf, valPerf, testPerf, mseDeleted, mseBEPS, weights) ...
+    weights.train * trainPerf + weights.val * valPerf + weights.test * testPerf + weights.deleted_diameter * mseDeleted + weights.beps * mseBEPS;
 
 % Loop to train on different diameters hidden for QHD dataset
 distinctDiametersQHD = unique(D);
@@ -69,14 +76,17 @@ for dIdx = 1:length(distinctDiametersQHD)
         mse_beps = perform(trainedNetQHD_temp, D_beps, trainedNetQHD_temp(QH_beps));
         logs{end+1} = ['Trained nn_QHD_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
+        % Compute the weighted score
+        score = compute_score(trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps, weights);
+
         % Update QHD_results
         QHD_results = [QHD_results; {diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps}];
         
         % Check if this is the best neural network for QHD
-        if mse_deleted_diameter < bestNetQHD.mse
+        if score < bestNetQHD.score
             bestNetQHD.net = trainedNetQHD_temp;
             bestNetQHD.diameter = diameterToRemove;
-            bestNetQHD.mse = mse_deleted_diameter;
+            bestNetQHD.score = score;
             bestNetQHD.trainPerformance = trainPerformanceQHD_temp;
             bestNetQHD.valPerformance = valPerformanceQHD_temp;
             bestNetQHD.testPerformance = testPerformanceQHD_temp;
@@ -121,14 +131,17 @@ for dIdx = 1:length(distinctDiametersQHD)
         mse_beps = perform(trainedNetQDH_temp, QH_beps(2,:), trainedNetQDH_temp([QH_beps(1,:); D_beps]));
         logs{end+1} = ['Trained nn_QDH_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
+        % Compute the weighted score
+        score = compute_score(trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps, weights);
+
         % Update QDH_results
         QDH_results = [QDH_results; {diameterToRemove, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps}];
         
         % Check if this is the best neural network for QDH
-        if mse_deleted_diameter < bestNetQDH.mse
+        if score < bestNetQDH.score
             bestNetQDH.net = trainedNetQDH_temp;
             bestNetQDH.diameter = diameterToRemove;
-            bestNetQDH.mse = mse_deleted_diameter;
+            bestNetQDH.score = score;
             bestNetQDH.trainPerformance = trainPerformanceQDH_temp;
             bestNetQDH.valPerformance = valPerformanceQDH_temp;
             bestNetQDH.testPerformance = testPerformanceQDH_temp;
@@ -174,14 +187,17 @@ for dIdx = 1:length(distinctDiametersQDP)
         mse_beps = perform(trainedNetQDP_temp, P_beps, trainedNetQDP_temp(QD_beps));
         logs{end+1} = ['Trained nn_QDP_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
+        % Compute the weighted score
+        score = compute_score(trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps, weights);
+
         % Update QDP_results
         QDP_results = [QDP_results; {diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps}];
         
         % Check if this is the best neural network for QDP
-        if mse_deleted_diameter < bestNetQDP.mse
+        if score < bestNetQDP.score
             bestNetQDP.net = trainedNetQDP_temp;
             bestNetQDP.diameter = diameterToRemove;
-            bestNetQDP.mse = mse_deleted_diameter;
+            bestNetQDP.score = score;
             bestNetQDP.trainPerformance = trainPerformanceQDP_temp;
             bestNetQDP.valPerformance = valPerformanceQDP_temp;
             bestNetQDP.testPerformance = testPerformanceQDP_temp;
@@ -243,12 +259,24 @@ disp(QDH_results);
 disp('Best Neural Networks:');
 if isfield(bestNetQHD, 'net')
     disp(['Best QHD Network: Diameter ' num2str(bestNetQHD.diameter)]);
+    disp(['Score: ' num2str(bestNetQHD.score)]);
+    disp(['Train Performance: ' num2str(bestNetQHD.trainPerformance)]);
+    disp(['Validation Performance: ' num2str(bestNetQHD.valPerformance)]);
+    disp(['Test Performance: ' num2str(bestNetQHD.testPerformance)]);
 end
 if isfield(bestNetQDP, 'net')
     disp(['Best QDP Network: Diameter ' num2str(bestNetQDP.diameter)]);
+    disp(['Score: ' num2str(bestNetQDP.score)]);
+    disp(['Train Performance: ' num2str(bestNetQDP.trainPerformance)]);
+    disp(['Validation Performance: ' num2str(bestNetQDP.valPerformance)]);
+    disp(['Test Performance: ' num2str(bestNetQDP.testPerformance)]);
 end
 if isfield(bestNetQDH, 'net')
     disp(['Best QDH Network: Diameter ' num2str(bestNetQDH.diameter)]);
+    disp(['Score: ' num2str(bestNetQDH.score)]);
+    disp(['Train Performance: ' num2str(bestNetQDH.trainPerformance)]);
+    disp(['Validation Performance: ' num2str(bestNetQDH.valPerformance)]);
+    disp(['Test Performance: ' num2str(bestNetQDH.testPerformance)]);
 end
 
 % Display a message indicating completion
