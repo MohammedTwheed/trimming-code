@@ -27,9 +27,9 @@ maxEpochs = 191;
 trainFcn= 'trainlm';
 
 % Train on full dataset
-[trainedNetQHD, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD] = train_nn([2,15,], maxEpochs, trainFcn, QH, D, randomSeed);
-[trainedNetQDH, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH] = train_nn([2,15,], maxEpochs, trainFcn, [QH(1,:); D], QH(2,:), randomSeed);
-[trainedNetQDP, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP] = train_nn([12,15,], maxEpochs, trainFcn, QD, P, randomSeed);
+[trainedNetQHD, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH, D, randomSeed);
+[trainedNetQDH, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH(1,:); D], QH(2,:), randomSeed);
+[trainedNetQDP, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD, P, randomSeed);
 
 % Arrays to save performance metrics
 QHD_results = [];
@@ -47,11 +47,24 @@ for dIdx = 1:length(distinctDiametersQHD)
     QH_temp(:, indicesToRemove) = [];
     D_temp(:, indicesToRemove) = [];
     
-    [trainedNetQHD_temp, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp] = train_nn([2,15,], maxEpochs, trainFcn, QH_temp, D_temp, randomSeed);
+    [trainedNetQHD_temp, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH_temp, D_temp, randomSeed);
     mse_deleted_diameter = perform(trainedNetQHD_temp, removedD, trainedNetQHD_temp(removedQH));
     mse_beps = perform(trainedNetQHD_temp, D_beps, trainedNetQHD_temp(QH_beps));
     
     QHD_results = [QHD_results; diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps];
+    
+    % Plot test data vs trained net predictions
+    figure;
+    plot(QH(1,:), D, 'bo'); % Original data
+    hold on;
+    plot(QH(1,:), trainedNetQHD_temp(QH), 'r*'); % Trained net predictions
+    plot(removedQH(1,:), removedD, 'gx'); % Removed diameter data
+    plot(QH_beps(1,:), D_beps, 'ms'); % BEPs data
+    legend('Original Data', 'Trained Net Predictions', 'Removed Diameter Data', 'BEPs Data');
+    title(['QHD: Diameter ' num2str(diameterToRemove)]);
+    xlabel('Flow Rate (m^3/h)');
+    ylabel('Head (m)');
+    hold off;
 end
 
 %% loop to train on different diameters hidden for QDP dataset
@@ -66,11 +79,24 @@ for dIdx = 1:length(distinctDiametersQDP)
     QD_temp(:, indicesToRemove) = [];
     P_temp(indicesToRemove) = [];
     
-    [trainedNetQDP_temp, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp] = train_nn([12,15,], maxEpochs, trainFcn, QD_temp, P_temp, randomSeed);
+    [trainedNetQDP_temp, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD_temp, P_temp, randomSeed);
     mse_deleted_diameter = perform(trainedNetQDP_temp, removedP, trainedNetQDP_temp(removedQD));
     mse_beps = perform(trainedNetQDP_temp, P_beps, trainedNetQDP_temp(QD_beps));
     
     QDP_results = [QDP_results; diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps];
+    
+    % Plot test data vs trained net predictions
+    figure;
+    plot(QD(1,:), P, 'bo'); % Original data
+    hold on;
+    plot(QD(1,:), trainedNetQDP_temp(QD), 'r*'); % Trained net predictions
+    plot(removedQD(1,:), removedP, 'gx'); % Removed diameter data
+    plot(QD_beps(1,:), P_beps, 'ms'); % BEPs data
+    legend('Original Data', 'Trained Net Predictions', 'Removed Diameter Data', 'BEPs Data');
+    title(['QDP: Diameter ' num2str(diameterToRemove)]);
+    xlabel('Flow Rate (m^3/h)');
+    ylabel('Power (kW)');
+    hold off;
 end
 
 % Save results to CSV
