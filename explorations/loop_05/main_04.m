@@ -279,6 +279,98 @@ if isfield(bestNetQDH, 'net')
     disp(['Test Performance: ' num2str(bestNetQDH.testPerformance)]);
 end
 
+%%  compare to nn to traditional methods 
+distinctDiameters = unique(D);
+
+% this to control percent_reduction in diamtere
+random_values = 3 + (7-3) * rand(1, 5);
+% Subtract the random values from the second row of QH
+QH_beps(2, :) = QH_beps(2, :) - random_values;
+
+% Extract the Q, H and D is already there in D.
+Q = QH(1,:);
+H = QH(2,:);
+
+% Create a structure to hold Q,H curves for each diameter in unique_D.
+pump_data = struct('Diameter', cell(length(distinctDiameters), 1), 'Q', cell(length(distinctDiameters), 1), 'H', cell(length(distinctDiameters), 1));
+
+for i = 1:length(distinctDiameters)
+    idx = (D == distinctDiameters(i));
+    pump_data(i).Diameter = distinctDiameters(i);
+    pump_data(i).Q = Q(idx);
+    pump_data(i).H = H(idx);
+end
+
+% Initialize arrays to store errors and diameter reductions
+percent_errors_cas_260 = zeros(1, 5);
+percent_errors_cas_nearest = zeros(1, 5);
+percent_errors_nn = zeros(1, 5);
+percent_reductions = zeros(1, 5);
+
+% Loop through each column in QH_beps
+for i = 1:5
+    d_real = D_beps(1, i); % Extracting d_real from D_beps
+
+    % Calculate d using constant_area_scaling
+    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2, i), pump_data(5).Q, pump_data(5).H, pump_data(5).Diameter, 4);
+    percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
+
+    % Calculate d using trim_diameters
+    d_trimmed_cas_nearest = trim_diameters(QH_beps(:, i), 'filtered_QHD_table.mat');
+    percent_errors_cas_nearest(i) = abs((d_trimmed_cas_nearest - d_real) / d_real) * 100;
+
+    % Calculate d using trainedNetQHD
+    d_trimmed_nn = bestNetQHD.net(QH_beps(:, i));
+    percent_errors_nn(i) = abs((d_trimmed_nn - d_real) / d_real) * 100;
+
+    % Calculate percent reduction in diameter
+    percent_reductions(i) = abs((d_real - d_trimmed_nn) / d_real) * 100;
+end
+
+% Store the errors and percent reductions in CSV files
+errors_table = table((1:5)', percent_errors_cas_260', percent_errors_cas_nearest', percent_errors_nn', percent_reductions', ...
+    'VariableNames', {'Index', 'Percent_Error_CAS_260', 'Percent_Error_CAS_Nearest', 'Percent_Error_NN', 'Percent_Reduction'});
+
+writetable(errors_table, fullfile(output_dir, 'errors_and_reductions.csv'));
+
+% Calculate and store the final statistics in another CSV file
+mae_trim_diameters = mean(percent_errors_cas_nearest);
+mae_trainedNetQHD = mean(percent_errors_nn);
+count_better_trainedNetQHD = sum(percent_errors_nn < percent_errors_cas_nearest);
+count_better_trim_diameters = sum(percent_errors_cas_nearest < percent_errors_nn);
+
+final_statistics_table = table(mae_trim_diameters, mae_trainedNetQHD, count_better_trainedNetQHD, count_better_trim_diameters, ...
+    'VariableNames', {'MAE_Trim_Diameters', 'MAE_TrainedNetQHD', 'Count_Better_TrainedNetQHD', 'Count_Better_Trim_Diameters'});
+
+writetable(final_statistics_table, fullfile(output_dir, 'final_statistics.csv'));
+
+% Display the percent errors
+disp('Percent errors for constant_area_scaling:');
+disp(percent_errors_cas_260);
+
+disp('Percent errors for trim_diameters:');
+disp(percent_errors_cas_nearest);
+
+disp('Percent errors for trainedNetQHD:');
+disp(percent_errors_nn);
+
+% Display final statistics
+disp('Final statistics:');
+disp(final_statistics_table);
+
+% Compare the MAEs
+if mae_trainedNetQHD < mae_trim_diameters
+    disp('trainedNetQHD has a lower mean absolute error and is therefore better.');
+else
+    disp('trim_diameters has a lower mean absolute error and is therefore better.');
+end
+
+% Count how many times one method outperforms the other
+if count_better_trainedNetQHD > count_better_trim_diameters
+    disp('trainedNetQHD outperforms trim_diameters more frequently.');
+else
+    disp('trim_diameters outperforms trainedNetQHD more frequently.');
+end
 
 % create and save our first time style 3d plot.
 processDataAndVisualize(QH', D', QD',P', bestNetQHD.net, bestNetQDP.net,figures_dir);
