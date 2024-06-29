@@ -63,8 +63,8 @@ for dIdx = 1:length(distinctDiameters)
 
 
     % Initialize bounds
-    lower_bounds=[2,  13,    13, 1, 1];
-    upper_bounds=[2,  300,    300, 2, 1];
+    lower_bounds=[2,  9,    100, 1, 1];
+    upper_bounds=[2,  95,    300, 2, 1];
     
     % Track the previous combined MSE to determine the improvement
     prevCombinedMSE = inf;
@@ -153,13 +153,13 @@ for dIdx = 1:length(distinctDiameters)
         hold off;
 
         % Save the plot with a descriptive filename
-        filename = sprintf('../loop_05/01/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.png', diameterToRemove, i, ...
+        filename = sprintf('../loop_05/02/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.png', diameterToRemove, i, ...
             optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
             optimalHyperParamsH(4), optimalHyperParamsH(5),mseDiameter,error(3));
         saveas(gcf, filename);
 
         % Specify the filename for saving the network
-        filename = sprintf('../loop_05/01/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.mat', diameterToRemove, i, ...
+        filename = sprintf('../loop_05/02/nn_diameter-%d_iteration_%d_%d-%d-%d-%d-%d_mseDia-%d_test-%d.mat', diameterToRemove, i, ...
             optimalHyperParamsH(1), optimalHyperParamsH(2), optimalHyperParamsH(3), ...
             optimalHyperParamsH(4), optimalHyperParamsH(5), mseDiameter,error(3));
             
@@ -182,7 +182,7 @@ end
 % Write the results to a CSV file
 writematrix([["Iteration", "Hidden Layer 1 Size", "Hidden Layer 2 Size", "Max Epochs", ...
     "Training Function", "Activation Function", "Final MSE", ...
-    "Random Seed", "Training Error", "Validation Error", "Test Error"]; result], './01/results_loop.csv');
+    "Random Seed", "Training Error", "Validation Error", "Test Error"]; result], './02/results_loop.csv');
 
 disp('./01/Results saved to results_loop.csv');
 

@@ -1,0 +1,30 @@
+Trained nn_QHD_temp on dataset without diameter 220 successfully.
+Plotted and saved QHD data for diameter 220 successfully.
+Trained nn_QHD_temp on dataset without diameter 230 successfully.
+Plotted and saved QHD data for diameter 230 successfully.
+Trained nn_QHD_temp on dataset without diameter 240 successfully.
+Plotted and saved QHD data for diameter 240 successfully.
+Trained nn_QHD_temp on dataset without diameter 250 successfully.
+Plotted and saved QHD data for diameter 250 successfully.
+Trained nn_QHD_temp on dataset without diameter 260 successfully.
+Plotted and saved QHD data for diameter 260 successfully.
+Trained nn_QDH_temp on dataset without diameter 220 successfully.
+Plotted and saved QDH data for diameter 220 successfully.
+Trained nn_QDH_temp on dataset without diameter 230 successfully.
+Plotted and saved QDH data for diameter 230 successfully.
+Trained nn_QDH_temp on dataset without diameter 240 successfully.
+Plotted and saved QDH data for diameter 240 successfully.
+Trained nn_QDH_temp on dataset without diameter 250 successfully.
+Plotted and saved QDH data for diameter 250 successfully.
+Trained nn_QDH_temp on dataset without diameter 260 successfully.
+Plotted and saved QDH data for diameter 260 successfully.
+Trained nn_QDP_temp on dataset without diameter 220 successfully.
+Plotted and saved QDP data for diameter 220 successfully.
+Trained nn_QDP_temp on dataset without diameter 230 successfully.
+Plotted and saved QDP data for diameter 230 successfully.
+Trained nn_QDP_temp on dataset without diameter 240 successfully.
+Plotted and saved QDP data for diameter 240 successfully.
+Trained nn_QDP_temp on dataset without diameter 250 successfully.
+Plotted and saved QDP data for diameter 250 successfully.
+Trained nn_QDP_temp on dataset without diameter 260 successfully.
+Plotted and saved QDP data for diameter 260 successfully.
