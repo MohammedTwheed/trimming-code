@@ -304,7 +304,7 @@ assuming you are in the same folder
 - resultsStruct(5).TrainedNet([150,200]')  this is [Q,H]'.
    - ans:   55.4335
 
-![screenshot-of-how-to-use-the-saved-NNs](screenshot of how to use the saved NNs.png)
+![screenshot-of-how-to-use-the-saved-NNs](screenshot-of-how-to-use-the-saved-NNs.png)
 
 
 ### Usage
