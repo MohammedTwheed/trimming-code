@@ -219,7 +219,7 @@ Computes the weighted score for the neural network based on the provided perform
 - **bestNetQDP.mat**: Best QDP neural network.
 - **bestNetQDH.mat**: Best QDH neural network.
 
-**here is example on how to use the saved structs for example `bestNetQHD.mat`
+** here is example on how to use the saved structs for example `bestNetQHD.mat` **
 
 
 ![how_to_use_bestNetQHD.mat](how_to_use_bestNetQHD.mat.png)
