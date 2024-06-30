@@ -422,15 +422,16 @@ for i = 1:5
     percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
 
     % Calculate d using trim_diameters
-    d_trimmed_cas_nearest = trim_diameters(QH_beps(:, i), './training-data/filtered_QHD_table.mat');
+    [d_trimmed_cas_nearest,d_ref] = trim_diameters(QH_beps(:, i), './training-data/filtered_QHD_table.mat');
     percent_errors_cas_nearest(i) = abs((d_trimmed_cas_nearest - d_real) / d_real) * 100;
+    % Calculate percent reduction in diameter
+    percent_reductions(i) = abs((d_ref - d_trimmed_cas_nearest) / d_ref) * 100;
 
     % Calculate d using trainedNetQHD
     d_trimmed_nn = bestNetQHD.net(QH_beps(:, i));
     percent_errors_nn(i) = abs((d_trimmed_nn - d_real) / d_real) * 100;
 
-    % Calculate percent reduction in diameter
-    percent_reductions(i) = abs((d_real - d_trimmed_nn) / d_real) * 100;
+
 end
 
 % Store the errors and percent reductions in CSV files
@@ -563,7 +564,7 @@ end
 
 
 
-function D_trimmed = trim_diameters(QH, dataPath)
+function [D_trimmed,D2] = trim_diameters(QH, dataPath)
 
     % Load the data
     loadedData = load(dataPath);
