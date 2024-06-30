@@ -414,19 +414,18 @@ percent_errors_nn = zeros(1, 5);
 percent_reductions = zeros(1, 5);
 
 % Loop through each column in QH_beps
-for i = 1:5
+for i = 1:4
     d_real = D_beps(1, i); % Extracting d_real from D_beps
 
     % Calculate d using constant_area_scaling
-    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2, i), pump_data(5).Q, pump_data(5).H, pump_data(5).Diameter, 4);
+    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2,i), pump_data(5).H,pump_data(5).Q,  pump_data(5).Diameter, 4);
     percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
 
-    % Calculate d using trim_diameters
-    [d_trimmed_cas_nearest,d_ref] = trim_diameters(QH_beps(:, i), './training-data/filtered_QHD_table.mat');
-    percent_errors_cas_nearest(i) = abs((d_trimmed_cas_nearest - d_real) / d_real) * 100;
-    % Calculate percent reduction in diameter
-    percent_reductions(i) = abs((d_ref - d_trimmed_cas_nearest) / d_ref) * 100;
+    % % Calculate d using trim_diameters
+    % d_trimmed_cas_nearest = constant_area_scaling(QH_beps(1, i), QH_beps(2,i), pump_data(i+1).H,pump_data(i+1).Q,  pump_data(i+1).Diameter, 4);
+    % percent_errors_cas_nearest(i) = abs((d_trimmed_cas_nearest - d_real) / d_real) * 100;
 
+    
     % Calculate d using trainedNetQHD
     d_trimmed_nn = bestNetQHD.net(QH_beps(:, i));
     percent_errors_nn(i) = abs((d_trimmed_nn - d_real) / d_real) * 100;
