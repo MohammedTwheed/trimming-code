@@ -31,17 +31,20 @@ end
 % Hyperparameters based on latest optimization with GA
 % randomSeed = 4837;
 randomSeed = 4826;
-nn_QHD_size_matrix = [5, 15];
-nn_QDH_size_matrix = [5, 15];
+nn_QHD_size_matrix = [ 15];
+nn_QDH_size_matrix = [ 5,15];
 nn_QDP_size_matrix = [2, 7, 29, 17];
 maxEpochs = 355;
 trainFcn = 'trainlm';
 
 
 % Initialize results tables with headers
-QHD_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', 'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
-QDP_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', 'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
-QDH_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', 'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
+QHD_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', ...
+'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
+QDP_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', ...
+'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
+QDH_results = array2table(NaN(1, 8), 'VariableNames', {'DiameterRemoved', 'AvgMSE', ...
+'TrainPerformance', 'ValPerformance', 'TestPerformance', 'MSEDeletedDiameter', 'MSEBEPs','Score'});
 
 logs = {};  % Initialize logs
 
@@ -49,9 +52,12 @@ logs = {};  % Initialize logs
 weights = struct('train', 0, 'val', 0.05, 'test', 0.35, 'deleted_diameter', 0.40, 'beps', 0.20);
 
 % Initialize best neural network variables for each type
-bestNetQHD = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
-bestNetQDP = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
-bestNetQDH = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], 'valPerformance', [], 'testPerformance', []);
+bestNetQHD = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], ...
+'valPerformance', [], 'testPerformance', []);
+bestNetQDP = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [], ...
+'valPerformance', [], 'testPerformance', []);
+bestNetQDH = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance', [],...
+ 'valPerformance', [], 'testPerformance', []);
 
 
 
@@ -60,16 +66,21 @@ bestNetQDH = struct('net', [], 'diameter', [], 'score', Inf, 'trainPerformance',
 
 % Train on full dataset without any complete diameter removed on the best
 % eff points are removed.
-[trainedNetQHD, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH, D, randomSeed);
-[trainedNetQDH, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH(1,:); D], QH(2,:), randomSeed);
-[trainedNetQDP, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD, P, randomSeed);
+[trainedNetQHD, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD] =...
+ train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH, D, randomSeed);
+[trainedNetQDH, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH] = ...
+train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH(1,:); D], QH(2,:), randomSeed);
+[trainedNetQDP, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP] = ...
+train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD, P, randomSeed);
 
 % Calculate mse_beps for the trained networks
 mse_beps_QHD = perform(trainedNetQHD, D_beps, trainedNetQHD(QH_beps));
 
 % Compute the weighted score
-score_QHD = compute_score(trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD, NaN, mse_beps_QHD, weights);
-QHD_results = [QHD_results; {NaN, avgMSEsQHD, trainPerformanceQHD, valPerformanceQHD, testPerformanceQHD, NaN, mse_beps_QHD,score_QHD}];
+score_QHD = compute_score(trainPerformanceQHD, valPerformanceQHD, ...
+testPerformanceQHD, NaN, mse_beps_QHD, weights);
+QHD_results = [QHD_results; {NaN, avgMSEsQHD, trainPerformanceQHD, ...
+valPerformanceQHD, testPerformanceQHD, NaN, mse_beps_QHD,score_QHD}];
 
 
 
@@ -83,17 +94,19 @@ bestNetQHD.testPerformance = testPerformanceQHD;
 end
 % Plot test data vs trained net predictions
 figure;
-plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
+ % Original data
+plot(QH(1,:), D , 'bo', 'DisplayName', 'Original Data');
 hold on;
-plot(QH(1,:), trainedNetQHD([QH(1,:); D]), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-
-plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+% Trained net predictions
+plot(QH(1,:), trainedNetQHD(QH), 'r*', 'DisplayName', 'Trained Net Predictions'); 
+% BEPs data
+plot(QH_beps(1,:), D_beps, 'ms', 'DisplayName', 'BEPs Data'); 
 legend('Location', 'best');
 title('QHD: No Diameter removed during training only beps ');
 xlabel('Flow Rate (m^3/h)');
 ylabel('Head (m)');
 xlim([0 400]);
-ylim([0 90]);
+ylim([0 300]);
 grid on;
 hold off;
 saveas(gcf, fullfile(figures_dir, 'QHD_Diameter_NaN.png'));
@@ -102,10 +115,12 @@ saveas(gcf, fullfile(figures_dir, 'QHD_Diameter_NaN.png'));
 
 mse_beps_QDH = perform(trainedNetQDH, QH_beps(2,:), trainedNetQDH([QH_beps(1,:); D_beps]));
 % Compute the weighted score
-score_QDH = compute_score(trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH, NaN, mse_beps_QDH, weights);
+score_QDH = compute_score(trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH, ... 
+NaN, mse_beps_QDH, weights);
 % Update QDH_results
 
-QDH_results = [QDH_results; {NaN, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, testPerformanceQDH, NaN, mse_beps_QDH,score_QDH}];
+QDH_results = [QDH_results; {NaN, avgMSEsQDH, trainPerformanceQDH, valPerformanceQDH, ... 
+testPerformanceQDH, NaN, mse_beps_QDH,score_QDH}];
 
 if score_QDH < bestNetQDH.score
 bestNetQDH.net = trainedNetQDH;
@@ -117,10 +132,13 @@ bestNetQDH.testPerformance = testPerformanceQDH;
 end
 % Plot test data vs trained net predictions
 figure;
-plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
+% Original data
+plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); 
 hold on;
-plot(QH(1,:), trainedNetQDH([QH(1,:); D]), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+% Trained net predictions
+plot(QH(1,:), trainedNetQDH([QH(1,:); D]), 'r*', 'DisplayName', 'Trained Net Predictions'); 
+% BEPs data
+plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); 
 legend('Location', 'best');
 title(['QDH: Diameter NaN']);
 xlabel('Flow Rate (m^3/h)');
@@ -133,10 +151,12 @@ saveas(gcf, fullfile(figures_dir, ['QDH_Diameter_NaN.png']));
 
 mse_beps_QDP = perform(trainedNetQDP, P_beps, trainedNetQDP(QD_beps));
 % Compute the weighted score
-score_QDP = compute_score(trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP, NaN, mse_beps_QDP, weights);
+score_QDP = compute_score(trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP,...
+ NaN, mse_beps_QDP, weights);
 
 % Update QDP_results
-QDP_results = [QDP_results; {NaN, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, testPerformanceQDP, NaN, mse_beps_QDP,score_QDP}];
+QDP_results = [QDP_results; {NaN, avgMSEsQDP, trainPerformanceQDP, valPerformanceQDP, ...
+testPerformanceQDP, NaN, mse_beps_QDP,score_QDP}];
 
 if score_QDP < bestNetQDP.score
 bestNetQDP.net = trainedNetQDP;
@@ -149,10 +169,13 @@ end
 
 % Plot test data vs trained net predictions
 figure;
-plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); % Original data
+% Original data
+plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); 
 hold on;
-plot(QD(1,:), trainedNetQDP(QD), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-plot(QD_beps(1,:), P_beps, 'ko', 'MarkerFaceColor', 'g', 'DisplayName', 'BEPs Data'); % BEPs data
+% Trained net predictions
+plot(QD(1,:), trainedNetQDP(QD), 'r*', 'DisplayName', 'Trained Net Predictions'); 
+% BEPs data
+plot(QD_beps(1,:), P_beps, 'ko', 'MarkerFaceColor', 'g', 'DisplayName', 'BEPs Data'); 
 legend('Location', 'best');
 title(['QDP: Diameter NaN' ]);
 xlabel('Flow Rate (m^3/h)');
@@ -164,7 +187,8 @@ hold off;
 saveas(gcf, fullfile(figures_dir, ['QDP_Diameter_NaN.png']));
 
 
-% Loop to train on different diameters hidden for QHD dataset
+% Loop to train on different NN on a dataset where one whole diameter curve is  hidden for QHD dataset
+
 distinctDiametersQHD = unique(D);
 for dIdx = 1:length(distinctDiametersQHD)
     diameterToRemove = distinctDiametersQHD(dIdx);
@@ -177,16 +201,19 @@ for dIdx = 1:length(distinctDiametersQHD)
     D_temp(:, indicesToRemove) = [];
 
     try
-        [trainedNetQHD_temp, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH_temp, D_temp, randomSeed);
+        [trainedNetQHD_temp, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp,...
+         testPerformanceQHD_temp] = train_nn(nn_QHD_size_matrix, maxEpochs, trainFcn, QH_temp, D_temp, randomSeed);
         mse_deleted_diameter = perform(trainedNetQHD_temp, removedD, trainedNetQHD_temp(removedQH));
         mse_beps = perform(trainedNetQHD_temp, D_beps, trainedNetQHD_temp(QH_beps));
         logs{end+1} = ['Trained nn_QHD_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
         % Compute the weighted score
-        score = compute_score(trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps, weights);
+        score = compute_score(trainPerformanceQHD_temp, valPerformanceQHD_temp,...
+         testPerformanceQHD_temp, mse_deleted_diameter, mse_beps, weights);
 
         % Update QHD_results
-        QHD_results = [QHD_results; {diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp, valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps,score}];
+        QHD_results = [QHD_results; {diameterToRemove, avgMSEsQHD_temp, trainPerformanceQHD_temp,...
+         valPerformanceQHD_temp, testPerformanceQHD_temp, mse_deleted_diameter, mse_beps,score}];
 
         % Check if this is the best neural network for QHD
         if score < bestNetQHD.score
@@ -200,17 +227,21 @@ for dIdx = 1:length(distinctDiametersQHD)
 
         % Plot test data vs trained net predictions
         figure;
-        plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
+        % Original data
+        plot(QH(1,:),D, 'bo', 'DisplayName', 'Original Data'); 
         hold on;
-        plot(QH_temp(1,:), trainedNetQHD_temp([QH_temp(1,:); D_temp]), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-        plot(removedQH(1,:), removedQH(2,:), 'gx', 'DisplayName', 'Removed Diameter Data'); % Removed diameter data
-        plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+        % Trained net predictions
+        plot(QH(1,:), trainedNetQHD_temp(QH), 'r*', 'DisplayName', 'Trained Net Predictions'); 
+        % Removed diameter data
+        plot(removedQH(1,:), removedD, 'gx', 'DisplayName', 'Removed Diameter Data'); 
+        % BEPs data
+        plot(QH_beps(1,:), D_beps, 'ms', 'DisplayName', 'BEPs Data'); 
         legend('Location', 'best');
         title(['QHD: Diameter ' num2str(diameterToRemove)]);
         xlabel('Flow Rate (m^3/h)');
         ylabel('Head (m)');
         xlim([0 400]);
-        ylim([0 90]);
+        ylim([0 300]);
         grid on;
         hold off;
         saveas(gcf, fullfile(figures_dir, ['QHD_Diameter_' num2str(diameterToRemove) '.png']));
@@ -220,7 +251,7 @@ for dIdx = 1:length(distinctDiametersQHD)
     end
 end
 
-% Loop to train on different diameters hidden for QDH dataset
+% Loop to train on different NN on a dataset where one whole diameter curve is  hidden for QHD dataset
 for dIdx = 1:length(distinctDiametersQHD)
     diameterToRemove = distinctDiametersQHD(dIdx);
     indicesToRemove = find(D == diameterToRemove);
@@ -232,16 +263,21 @@ for dIdx = 1:length(distinctDiametersQHD)
     D_temp(:, indicesToRemove) = [];
 
     try
-        [trainedNetQDH_temp, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, [QH_temp(1,:); D_temp], QH_temp(2,:), randomSeed);
-        mse_deleted_diameter = perform(trainedNetQDH_temp, removedQH(2,:), trainedNetQDH_temp([removedQH(1,:); removedD]));
+        [trainedNetQDH_temp, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp,...
+         testPerformanceQDH_temp] = train_nn(nn_QDH_size_matrix, maxEpochs, trainFcn, ...
+         [QH_temp(1,:); D_temp], QH_temp(2,:), randomSeed);
+        mse_deleted_diameter = perform(trainedNetQDH_temp, removedQH(2,:),...
+         trainedNetQDH_temp([removedQH(1,:); removedD]));
         mse_beps = perform(trainedNetQDH_temp, QH_beps(2,:), trainedNetQDH_temp([QH_beps(1,:); D_beps]));
         logs{end+1} = ['Trained nn_QDH_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
         % Compute the weighted score
-        score = compute_score(trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps, weights);
+        score = compute_score(trainPerformanceQDH_temp, valPerformanceQDH_temp, ...
+        testPerformanceQDH_temp, mse_deleted_diameter, mse_beps, weights);
 
         % Update QDH_results
-        QDH_results = [QDH_results; {diameterToRemove, avgMSEsQDH_temp, trainPerformanceQDH_temp, valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps,score}];
+        QDH_results = [QDH_results; {diameterToRemove, avgMSEsQDH_temp, trainPerformanceQDH_temp,...
+         valPerformanceQDH_temp, testPerformanceQDH_temp, mse_deleted_diameter, mse_beps,score}];
 
         % Check if this is the best neural network for QDH
         if score < bestNetQDH.score
@@ -255,11 +291,15 @@ for dIdx = 1:length(distinctDiametersQHD)
 
         % Plot test data vs trained net predictions
         figure;
-        plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); % Original data
+        % Original data
+        plot(QH(1,:), QH(2,:), 'bo', 'DisplayName', 'Original Data'); 
         hold on;
-        plot(QH_temp(1,:), trainedNetQDH_temp([QH_temp(1,:); D_temp]), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-        plot(removedQH(1,:), removedQH(2,:), 'gx', 'DisplayName', 'Removed Diameter Data'); % Removed diameter data
-        plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); % BEPs data
+        % Trained net predictions
+        plot(QH(1,:), trainedNetQDH_temp([QH(1,:); D]), 'r*', 'DisplayName', 'Trained Net Predictions'); 
+         % Removed diameter data
+        plot(removedQH(1,:), removedQH(2,:), 'gx', 'DisplayName', 'Removed Diameter Data');
+        % BEPs data
+        plot(QH_beps(1,:), QH_beps(2,:), 'ms', 'DisplayName', 'BEPs Data'); 
         legend('Location', 'best');
         title(['QDH: Diameter ' num2str(diameterToRemove)]);
         xlabel('Flow Rate (m^3/h)');
@@ -275,7 +315,7 @@ for dIdx = 1:length(distinctDiametersQHD)
     end
 end
 
-% Loop to train on different diameters hidden for QDP dataset
+% Loop to train on different NN on a dataset where one whole diameter curve is  hidden for QDP dataset
 distinctDiametersQDP = unique(QD(2,:));
 for dIdx = 1:length(distinctDiametersQDP)
     diameterToRemove = distinctDiametersQDP(dIdx);
@@ -288,16 +328,20 @@ for dIdx = 1:length(distinctDiametersQDP)
     P_temp(:, indicesToRemove) = [];
 
     try
-        [trainedNetQDP_temp, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp] = train_nn(nn_QDP_size_matrix, maxEpochs, trainFcn, QD_temp, P_temp, randomSeed);
+        [trainedNetQDP_temp, avgMSEsQDP_temp, trainPerformanceQDP_temp,...
+         valPerformanceQDP_temp, testPerformanceQDP_temp] = train_nn(nn_QDP_size_matrix, maxEpochs,...
+          trainFcn, QD_temp, P_temp, randomSeed);
         mse_deleted_diameter = perform(trainedNetQDP_temp, removedP, trainedNetQDP_temp(removedQD));
         mse_beps = perform(trainedNetQDP_temp, P_beps, trainedNetQDP_temp(QD_beps));
         logs{end+1} = ['Trained nn_QDP_temp on dataset without diameter ' num2str(diameterToRemove) ' successfully.'];
 
         % Compute the weighted score
-        score = compute_score(trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps, weights);
+        score = compute_score(trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp,...
+         mse_deleted_diameter, mse_beps, weights);
 
         % Update QDP_results
-        QDP_results = [QDP_results; {diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp, valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps,score}];
+        QDP_results = [QDP_results; {diameterToRemove, avgMSEsQDP_temp, trainPerformanceQDP_temp,...
+         valPerformanceQDP_temp, testPerformanceQDP_temp, mse_deleted_diameter, mse_beps,score}];
 
         % Check if this is the best neural network for QDP
         if score < bestNetQDP.score
@@ -311,11 +355,15 @@ for dIdx = 1:length(distinctDiametersQDP)
 
         % Plot test data vs trained net predictions
         figure;
-        plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); % Original data
+        % Original data
+        plot(QD(1,:), P, 'bo', 'DisplayName', 'Original Data'); 
         hold on;
-        plot(QD_temp(1,:), trainedNetQDP_temp(QD_temp), 'r*', 'DisplayName', 'Trained Net Predictions'); % Trained net predictions
-        plot(removedQD(1,:), removedP, 'gx', 'DisplayName', 'Removed Diameter Data'); % Removed diameter data
-        plot(QD_beps(1,:), P_beps, 'ko', 'MarkerFaceColor', 'g', 'DisplayName', 'BEPs Data'); % BEPs data
+        % Trained net predictions
+        plot(QD(1,:), trainedNetQDP_temp(QD), 'r*', 'DisplayName', 'Trained Net Predictions');
+        % Removed diameter data 
+        plot(removedQD(1,:), removedP, 'gx', 'DisplayName', 'Removed Diameter Data'); 
+        % BEPs data
+        plot(QD_beps(1,:), P_beps, 'ko', 'MarkerFaceColor', 'g', 'DisplayName', 'BEPs Data'); 
         legend('Location', 'best');
         title(['QDP: Diameter ' num2str(diameterToRemove)]);
         xlabel('Flow Rate (m^3/h)');
@@ -388,17 +436,14 @@ end
 %%  compare to nn to traditional methods 
 distinctDiameters = unique(D);
 
-% % this to control percent_reduction in diamtere
-% random_values = 3 + (7-3) * rand(1, 5);
-% % Subtract the random values from the second row of QH
-% QH_beps(2, :) = QH_beps(2, :) - random_values;
 
 % Extract the Q, H and D is already there in D.
 Q = QH(1,:);
 H = QH(2,:);
 
 % Create a structure to hold Q,H curves for each diameter in unique_D.
-pump_data = struct('Diameter', cell(length(distinctDiameters), 1), 'Q', cell(length(distinctDiameters), 1), 'H', cell(length(distinctDiameters), 1));
+pump_data = struct('Diameter', cell(length(distinctDiameters), 1), 'Q',...
+ cell(length(distinctDiameters), 1), 'H', cell(length(distinctDiameters), 1));
 
 for i = 1:length(distinctDiameters)
     idx = (D == distinctDiameters(i));
@@ -418,7 +463,8 @@ for i = 1:4
     d_real = D_beps(1, i); % Extracting d_real from D_beps
 
     % Calculate d using constant_area_scaling
-    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i), QH_beps(2,i), pump_data(5).H,pump_data(5).Q,  pump_data(5).Diameter, 4);
+    d_trimmed_cas_260 = constant_area_scaling(QH_beps(1, i),...
+     QH_beps(2,i), pump_data(5).H,pump_data(5).Q,  pump_data(5).Diameter, 4);
     percent_errors_cas_260(i) = abs((d_trimmed_cas_260 - d_real) / d_real) * 100;
 
     
@@ -441,8 +487,10 @@ mae_trainedNetQHD = mean(percent_errors_nn);
 count_better_trainedNetQHD = sum(percent_errors_nn < percent_errors_cas_nearest);
 count_better_trim_diameters = sum(percent_errors_cas_nearest < percent_errors_nn);
 
-final_statistics_table = table(mae_trim_diameters, mae_trainedNetQHD, count_better_trainedNetQHD, count_better_trim_diameters, ...
-    'VariableNames', {'MAE_Trim_Diameters', 'MAE_TrainedNetQHD', 'Count_Better_TrainedNetQHD', 'Count_Better_Trim_Diameters'});
+final_statistics_table = table(mae_trim_diameters,...
+ mae_trainedNetQHD, count_better_trainedNetQHD, count_better_trim_diameters, ...
+    'VariableNames', {'MAE_Trim_Diameters', 'MAE_TrainedNetQHD', ...
+    'Count_Better_TrainedNetQHD', 'Count_Better_Trim_Diameters'});
 
 writetable(final_statistics_table, fullfile(output_dir, 'final_statistics.csv'));
 
@@ -502,7 +550,8 @@ else
 end
 end
 
-function [trainedNet,avgMSEs,trainPerformance,valPerformance,testPerformance] = train_nn(nn_size_matrix,maxEpochs,trainFcn ,x, t, randomSeed)
+function [trainedNet,avgMSEs,trainPerformance,valPerformance,testPerformance] = ... 
+    train_nn(nn_size_matrix,maxEpochs,trainFcn ,x, t, randomSeed)
         rng(randomSeed); % Set random seed for reproducibility.
         % Define the neural network.
         net = feedforwardnet(nn_size_matrix,trainFcn);
