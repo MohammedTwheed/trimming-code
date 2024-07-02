@@ -104,7 +104,7 @@ plot(QH_beps(1,:), D_beps, 'ms', 'DisplayName', 'BEPs Data');
 legend('Location', 'best');
 title('QHD: No Diameter removed during training only beps ');
 xlabel('Flow Rate (m^3/h)');
-ylabel('Head (m)');
+ylabel('Diameter (mm)');
 xlim([0 400]);
 ylim([0 300]);
 grid on;
@@ -239,7 +239,7 @@ for dIdx = 1:length(distinctDiametersQHD)
         legend('Location', 'best');
         title(['QHD: Diameter ' num2str(diameterToRemove)]);
         xlabel('Flow Rate (m^3/h)');
-        ylabel('Head (m)');
+        ylabel('Diameter (mm)');
         xlim([0 400]);
         ylim([0 300]);
         grid on;
@@ -479,48 +479,18 @@ end
 errors_table = table((1:5)', percent_errors_cas_260',  percent_errors_nn',  ...
     'VariableNames', {'Index', '%error  (constand area scaling)',  '% error in (neural network)'});
 
-writetable(errors_table, fullfile(output_dir, 'errors_and_reductions.csv'));
+writetable(errors_table, fullfile(output_dir, 'percent_error_between_bestQ_HD_NN_CAS.csv'));
 
-% Calculate and store the final statistics in another CSV file
-mae_trim_diameters = mean(percent_errors_cas_nearest);
-mae_trainedNetQHD = mean(percent_errors_nn);
-count_better_trainedNetQHD = sum(percent_errors_nn < percent_errors_cas_nearest);
-count_better_trim_diameters = sum(percent_errors_cas_nearest < percent_errors_nn);
-
-final_statistics_table = table(mae_trim_diameters,...
- mae_trainedNetQHD, count_better_trainedNetQHD, count_better_trim_diameters, ...
-    'VariableNames', {'MAE_Trim_Diameters', 'MAE_TrainedNetQHD', ...
-    'Count_Better_TrainedNetQHD', 'Count_Better_Trim_Diameters'});
-
-writetable(final_statistics_table, fullfile(output_dir, 'final_statistics.csv'));
 
 % Display the percent errors
 disp('Percent errors for traditional trimming when the 260 mm diameter is ref:');
 disp(percent_errors_cas_260);
 
-disp('Percent errors for when choose nearst diameter and ref usin trim_diameters function:');
-disp(percent_errors_cas_nearest);
 
 disp('Percent errors for best trainedNetQHD:');
 disp(percent_errors_nn);
 
-% Display final statistics
-disp('Final statistics:');
-disp(final_statistics_table);
 
-% Compare the MAEs
-if mae_trainedNetQHD < mae_trim_diameters
-    disp('trainedNetQHD has a lower mean absolute error and is therefore better.');
-else
-    disp('trim_diameters has a lower mean absolute error and is therefore better.');
-end
-
-% Count how many times one method outperforms the other
-if count_better_trainedNetQHD > count_better_trim_diameters
-    disp('trainedNetQHD outperforms trim_diameters more frequently.');
-else
-    disp('trim_diameters outperforms trainedNetQHD more frequently.');
-end
 
 % create and save our first time style 3d plot.
 processDataAndVisualize(QH', D', QD',P', bestNetQHD.net, bestNetQDP.net,figures_dir);
@@ -610,16 +580,8 @@ end
 
 
 function D2_prime = constant_area_scaling(Q_prime, H_prime, H_curve, Q_curve, D2, poly_degree)
-    % Center and scale the data
-    Q_mean = mean(Q_curve);
-    Q_std = std(Q_curve);
-    H_mean = mean(H_curve);
-    H_std = std(H_curve);
-    Q_scaled = (Q_curve - Q_mean) / Q_std;
-    H_scaled = (H_curve - H_mean) / H_std;
-    
-    % Fit the polynomial
-    p = polyfit(Q_scaled, H_scaled, poly_degree);
+
+    p = polyfit(Q_curve, H_curve, poly_degree);
     
     % Calculate the scaled A value
     A = H_prime / (Q_prime)^2;
@@ -630,15 +592,12 @@ function D2_prime = constant_area_scaling(Q_prime, H_prime, H_curve, Q_curve, D2
     eqn = A * Q^2 == poly_expr;
     sol = double(solve(eqn, Q));
     
-    Q_valid = sol(sol > 0 & imag(sol) == 0 & sol <= max(Q_scaled) & sol >= min(Q_scaled));
+    Q_valid = sol(sol > 0 & imag(sol) == 0 & sol <= max(Q_curve) & sol >= min(Q_curve));
     if isempty(Q_valid)
         error('No valid intersection found within the range of the pump curve.');
     end
     Q_intersect = max(Q_valid);
     
-    % Scale back the Q_intersect value
-    Q_intersect = Q_intersect * Q_std + Q_mean;
-
     D2_prime = Q_prime / Q_intersect * D2;
 end
 
